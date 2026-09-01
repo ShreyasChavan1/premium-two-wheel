@@ -15,7 +15,7 @@ const DESCRIPTION =
 
 type Search = { category?: string };
 
-export const Route = createFileRoute("/vehicles")({
+export const Route = createFileRoute("/vehicles/")({
   validateSearch: (search: Record<string, unknown>): Search => {
     const category = typeof search["category"] === "string" ? search["category"] : undefined;
     return category && CATEGORIES.some((c) => c.value === category) ? { category } : {};
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/vehicles")({
 
 function VehiclesPage() {
   const { category } = Route.useSearch();
-  const navigate = useNavigate({ from: "/vehicles" });
+  const navigate = useNavigate({ from: "/vehicles/" });
   const { data, isLoading, isError } = useQuery(vehiclesQuery);
 
   const vehicles = (data ?? []).filter((v) => !category || v.category === category);
