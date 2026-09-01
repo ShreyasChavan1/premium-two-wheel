@@ -17,6 +17,8 @@ import { Route as OffersRouteImport } from './routes/offers'
 import { Route as VehiclesRouteImport } from './routes/vehicles'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEnquiriesRouteImport } from './routes/admin.enquiries'
+import { Route as AdminOffersRouteImport } from './routes/admin.offers'
+import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as VehiclesSlugRouteImport } from './routes/vehicles.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +61,16 @@ const AdminEnquiriesRoute = AdminEnquiriesRouteImport.update({
   path: '/enquiries',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOffersRoute = AdminOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVehiclesRoute = AdminVehiclesRouteImport.update({
+  id: '/vehicles',
+  path: '/vehicles',
+  getParentRoute: () => AdminRoute,
+} as any)
 const VehiclesSlugRoute = VehiclesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -73,6 +85,8 @@ export interface FileRoutesByFullPath {
   '/offers': typeof OffersRoute
   '/vehicles': typeof VehiclesRouteWithChildren
   '/admin/enquiries': typeof AdminEnquiriesRoute
+  '/admin/offers': typeof AdminOffersRoute
+  '/admin/vehicles': typeof AdminVehiclesRoute
   '/vehicles/$slug': typeof VehiclesSlugRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -83,6 +97,8 @@ export interface FileRoutesByTo {
   '/offers': typeof OffersRoute
   '/vehicles': typeof VehiclesRouteWithChildren
   '/admin/enquiries': typeof AdminEnquiriesRoute
+  '/admin/offers': typeof AdminOffersRoute
+  '/admin/vehicles': typeof AdminVehiclesRoute
   '/vehicles/$slug': typeof VehiclesSlugRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -95,6 +111,8 @@ export interface FileRoutesById {
   '/offers': typeof OffersRoute
   '/vehicles': typeof VehiclesRouteWithChildren
   '/admin/enquiries': typeof AdminEnquiriesRoute
+  '/admin/offers': typeof AdminOffersRoute
+  '/admin/vehicles': typeof AdminVehiclesRoute
   '/vehicles/$slug': typeof VehiclesSlugRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -108,6 +126,8 @@ export interface FileRouteTypes {
     | '/offers'
     | '/vehicles'
     | '/admin/enquiries'
+    | '/admin/offers'
+    | '/admin/vehicles'
     | '/vehicles/$slug'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -118,6 +138,8 @@ export interface FileRouteTypes {
     | '/offers'
     | '/vehicles'
     | '/admin/enquiries'
+    | '/admin/offers'
+    | '/admin/vehicles'
     | '/vehicles/$slug'
     | '/admin'
   id:
@@ -129,6 +151,8 @@ export interface FileRouteTypes {
     | '/offers'
     | '/vehicles'
     | '/admin/enquiries'
+    | '/admin/offers'
+    | '/admin/vehicles'
     | '/vehicles/$slug'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -200,6 +224,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEnquiriesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/offers': {
+      id: '/admin/offers'
+      path: '/offers'
+      fullPath: '/admin/offers'
+      preLoaderRoute: typeof AdminOffersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/vehicles': {
+      id: '/admin/vehicles'
+      path: '/vehicles'
+      fullPath: '/admin/vehicles'
+      preLoaderRoute: typeof AdminVehiclesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/vehicles/$slug': {
       id: '/vehicles/$slug'
       path: '/$slug'
@@ -212,11 +250,15 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminEnquiriesRoute: typeof AdminEnquiriesRoute
+  AdminOffersRoute: typeof AdminOffersRoute
+  AdminVehiclesRoute: typeof AdminVehiclesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminEnquiriesRoute: AdminEnquiriesRoute,
+  AdminOffersRoute: AdminOffersRoute,
+  AdminVehiclesRoute: AdminVehiclesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
