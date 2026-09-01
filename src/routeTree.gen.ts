@@ -14,11 +14,11 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as OffersRouteImport } from './routes/offers'
-import { Route as VehiclesRouteImport } from './routes/vehicles'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminEnquiriesRouteImport } from './routes/admin.enquiries'
 import { Route as AdminOffersRouteImport } from './routes/admin.offers'
 import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
+import { Route as VehiclesIndexRouteImport } from './routes/vehicles.index'
 import { Route as VehiclesSlugRouteImport } from './routes/vehicles.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,11 +46,6 @@ const OffersRoute = OffersRouteImport.update({
   path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VehiclesRoute = VehiclesRouteImport.update({
-  id: '/vehicles',
-  path: '/vehicles',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -71,10 +66,15 @@ const AdminVehiclesRoute = AdminVehiclesRouteImport.update({
   path: '/vehicles',
   getParentRoute: () => AdminRoute,
 } as any)
+const VehiclesIndexRoute = VehiclesIndexRouteImport.update({
+  id: '/vehicles/',
+  path: '/vehicles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VehiclesSlugRoute = VehiclesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => VehiclesRoute,
+  id: '/vehicles/$slug',
+  path: '/vehicles/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -83,24 +83,24 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/offers': typeof OffersRoute
-  '/vehicles': typeof VehiclesRouteWithChildren
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/vehicles': typeof AdminVehiclesRoute
   '/vehicles/$slug': typeof VehiclesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/vehicles/': typeof VehiclesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/offers': typeof OffersRoute
-  '/vehicles': typeof VehiclesRouteWithChildren
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/vehicles': typeof AdminVehiclesRoute
   '/vehicles/$slug': typeof VehiclesSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/vehicles': typeof VehiclesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,12 +109,12 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/offers': typeof OffersRoute
-  '/vehicles': typeof VehiclesRouteWithChildren
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/vehicles': typeof AdminVehiclesRoute
   '/vehicles/$slug': typeof VehiclesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/vehicles/': typeof VehiclesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -124,24 +124,24 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/offers'
-    | '/vehicles'
     | '/admin/enquiries'
     | '/admin/offers'
     | '/admin/vehicles'
     | '/vehicles/$slug'
     | '/admin/'
+    | '/vehicles/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/contact'
     | '/offers'
-    | '/vehicles'
     | '/admin/enquiries'
     | '/admin/offers'
     | '/admin/vehicles'
     | '/vehicles/$slug'
     | '/admin'
+    | '/vehicles'
   id:
     | '__root__'
     | '/'
@@ -149,12 +149,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/contact'
     | '/offers'
-    | '/vehicles'
     | '/admin/enquiries'
     | '/admin/offers'
     | '/admin/vehicles'
     | '/vehicles/$slug'
     | '/admin/'
+    | '/vehicles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -163,7 +163,8 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
   OffersRoute: typeof OffersRoute
-  VehiclesRoute: typeof VehiclesRouteWithChildren
+  VehiclesSlugRoute: typeof VehiclesSlugRoute
+  VehiclesIndexRoute: typeof VehiclesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,13 +204,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/vehicles': {
-      id: '/vehicles'
-      path: '/vehicles'
-      fullPath: '/vehicles'
-      preLoaderRoute: typeof VehiclesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -238,12 +232,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVehiclesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/vehicles/': {
+      id: '/vehicles/'
+      path: '/vehicles'
+      fullPath: '/vehicles/'
+      preLoaderRoute: typeof VehiclesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vehicles/$slug': {
       id: '/vehicles/$slug'
-      path: '/$slug'
+      path: '/vehicles/$slug'
       fullPath: '/vehicles/$slug'
       preLoaderRoute: typeof VehiclesSlugRouteImport
-      parentRoute: typeof VehiclesRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -264,25 +265,14 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface VehiclesRouteChildren {
-  VehiclesSlugRoute: typeof VehiclesSlugRoute
-}
-
-const VehiclesRouteChildren: VehiclesRouteChildren = {
-  VehiclesSlugRoute: VehiclesSlugRoute,
-}
-
-const VehiclesRouteWithChildren = VehiclesRoute._addFileChildren(
-  VehiclesRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
   OffersRoute: OffersRoute,
-  VehiclesRoute: VehiclesRouteWithChildren,
+  VehiclesSlugRoute: VehiclesSlugRoute,
+  VehiclesIndexRoute: VehiclesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
