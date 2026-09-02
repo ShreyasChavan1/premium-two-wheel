@@ -107,6 +107,88 @@ export type Database = {
         }
         Relationships: []
       }
+      variant_colours: {
+        Row: {
+          created_at: string
+          id: string
+          images: string[]
+          name: string
+          sort_order: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          images?: string[]
+          name: string
+          sort_order?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          images?: string[]
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_colours_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_available: boolean
+          name: string
+          price: number | null
+          sort_order: number
+          specs: Json
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          name: string
+          price?: number | null
+          sort_order?: number
+          specs?: Json
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          name?: string
+          price?: number | null
+          sort_order?: number
+          specs?: Json
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_variants_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           category: string
