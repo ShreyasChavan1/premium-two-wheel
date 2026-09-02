@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Layers, Pencil, Plus, Trash2 } from "lucide-react";
 import { AvailabilityBadge } from "@/components/availability-badge";
+import { ImageManager } from "@/components/image-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { vehiclesQuery, type Vehicle } from "@/lib/catalogue";
+import {
+  variantsQuery,
+  vehiclesQuery,
+  type Vehicle,
+  type VehicleVariant,
+  type VariantColour,
+} from "@/lib/catalogue";
 import { CATEGORIES, categoryLabel, formatPrice } from "@/lib/showroom";
 
 export const Route = createFileRoute("/admin/vehicles")({
@@ -25,10 +32,7 @@ type Draft = {
   short_description: string;
   description: string;
   price_from: string;
-  image_url: string;
-  variants: string;
-  colors: string;
-  specs: string;
+  images: string[];
   is_available: boolean;
   is_featured: boolean;
   sort_order: string;
@@ -41,10 +45,7 @@ const EMPTY: Draft = {
   short_description: "",
   description: "",
   price_from: "",
-  image_url: "",
-  variants: "",
-  colors: "",
-  specs: "",
+  images: [],
   is_available: true,
   is_featured: false,
   sort_order: "0",
@@ -58,24 +59,13 @@ const toDraft = (vehicle: Vehicle): Draft => ({
   short_description: vehicle.short_description,
   description: vehicle.description,
   price_from: vehicle.price_from == null ? "" : String(vehicle.price_from),
-  image_url: vehicle.image_url,
-  variants: vehicle.variants.join(", "),
-  colors: vehicle.colors.join(", "),
-  specs: Object.entries(vehicle.specs)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join("\n"),
+  images: [vehicle.image_url, ...vehicle.gallery].filter(Boolean),
   is_available: vehicle.is_available,
   is_featured: vehicle.is_featured,
   sort_order: String(vehicle.sort_order),
 });
 
-const list = (value: string) =>
-  value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-const parseSpecs = (value: string) => {
+export const parseSpecs = (value: string) => {
   const specs: Record<string, string> = {};
   for (const line of value.split("\n")) {
     const index = line.indexOf(":");
@@ -87,6 +77,11 @@ const parseSpecs = (value: string) => {
   return specs;
 };
 
+const specsToText = (specs: Record<string, string>) =>
+  Object.entries(specs)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n");
+
 const slugify = (value: string) =>
   value
     .toLowerCase()
@@ -96,6 +91,7 @@ const slugify = (value: string) =>
 function AdminVehicles() {
   const { data, isLoading, isError } = useQuery(vehiclesQuery);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [openVariants, setOpenVariants] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -113,10 +109,8 @@ function AdminVehicles() {
         short_description: values.short_description,
         description: values.description,
         price_from: values.price_from ? Number(values.price_from) : null,
-        image_url: values.image_url,
-        variants: list(values.variants),
-        colors: list(values.colors),
-        specs: parseSpecs(values.specs),
+        image_url: values.images[0] ?? "",
+        gallery: values.images.slice(1),
         is_available: values.is_available,
         is_featured: values.is_featured,
         sort_order: Number(values.sort_order) || 0,
@@ -160,7 +154,7 @@ function AdminVehicles() {
         <div>
           <h1 className="font-display text-4xl font-bold uppercase tracking-tight">Vehicles</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add models, update prices, colours and showroom availability.
+            Add models, then manage their variants, colours and gallery images.
           </p>
         </div>
         <Button onClick={() => setDraft({ ...EMPTY })}>
@@ -191,52 +185,64 @@ function AdminVehicles() {
 
       <ul className="space-y-3">
         {(data ?? []).map((vehicle) => (
-          <li
-            key={vehicle.id}
-            className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-card p-4"
-          >
-            <img
-              src={vehicle.image_url}
-              alt={vehicle.name}
-              loading="lazy"
-              className="h-20 w-28 rounded-lg object-cover"
-            />
-            <div className="min-w-40 flex-1">
-              <p className="font-display text-xl font-bold uppercase tracking-wide">{vehicle.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {categoryLabel(vehicle.category)} · {formatPrice(vehicle.price_from)}
-                {vehicle.is_featured ? " · Featured" : ""}
-              </p>
-              <div className="mt-2">
-                <AvailabilityBadge available={vehicle.is_available} />
+          <li key={vehicle.id} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <img
+                src={vehicle.image_url}
+                alt={vehicle.name}
+                loading="lazy"
+                className="h-20 w-28 rounded-lg object-cover"
+              />
+              <div className="min-w-40 flex-1">
+                <p className="font-display text-xl font-bold uppercase tracking-wide">
+                  {vehicle.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {categoryLabel(vehicle.category)} · {formatPrice(vehicle.price_from)}
+                  {vehicle.is_featured ? " · Featured" : ""}
+                </p>
+                <div className="mt-2">
+                  <AvailabilityBadge available={vehicle.is_available} />
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 pr-2">
-                <Switch
-                  id={`available-${vehicle.id}`}
-                  checked={vehicle.is_available}
-                  onCheckedChange={() => toggleAvailability.mutate(vehicle)}
-                />
-                <Label htmlFor={`available-${vehicle.id}`} className="text-xs">
-                  In stock
-                </Label>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setDraft(toDraft(vehicle))}>
-                <Pencil /> Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (window.confirm(`Delete ${vehicle.name}? This cannot be undone.`)) {
-                    remove.mutate(vehicle.id);
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 pr-2">
+                  <Switch
+                    id={`available-${vehicle.id}`}
+                    checked={vehicle.is_available}
+                    onCheckedChange={() => toggleAvailability.mutate(vehicle)}
+                  />
+                  <Label htmlFor={`available-${vehicle.id}`} className="text-xs">
+                    In stock
+                  </Label>
+                </div>
+                <Button
+                  size="sm"
+                  variant={openVariants === vehicle.id ? "default" : "outline"}
+                  onClick={() =>
+                    setOpenVariants(openVariants === vehicle.id ? null : vehicle.id)
                   }
-                }}
-              >
-                <Trash2 /> Delete
-              </Button>
+                >
+                  <Layers /> Variants
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setDraft(toDraft(vehicle))}>
+                  <Pencil /> Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (window.confirm(`Delete ${vehicle.name}? This cannot be undone.`)) {
+                      remove.mutate(vehicle.id);
+                    }
+                  }}
+                >
+                  <Trash2 /> Delete
+                </Button>
+              </div>
             </div>
+
+            {openVariants === vehicle.id && <VariantsPanel vehicle={vehicle} />}
           </li>
         ))}
       </ul>
@@ -265,7 +271,8 @@ function VehicleForm({
   saving: boolean;
   error: string | null;
 }) {
-  const set = (key: keyof Draft, value: string | boolean) => onChange({ ...draft, [key]: value });
+  const set = (key: keyof Draft, value: string | boolean | string[]) =>
+    onChange({ ...draft, [key]: value });
 
   return (
     <form
@@ -317,13 +324,12 @@ function VehicleForm({
             onChange={(e) => set("price_from", e.target.value)}
           />
         </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="image">Main image URL</Label>
-          <Input
-            id="image"
-            value={draft.image_url}
-            placeholder="/images/demo/activa-6g.jpg"
-            onChange={(e) => set("image_url", e.target.value)}
+        <div className="sm:col-span-2">
+          <ImageManager
+            label="Main vehicle images"
+            hint="The first image is used on cards and as the default gallery image."
+            images={draft.images}
+            onChange={(images) => set("images", images)}
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
@@ -342,22 +348,6 @@ function VehicleForm({
             value={draft.description}
             onChange={(e) => set("description", e.target.value)}
           />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="variants">Variants (comma separated)</Label>
-          <Input
-            id="variants"
-            value={draft.variants}
-            onChange={(e) => set("variants", e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="colors">Colours (comma separated)</Label>
-          <Input id="colors" value={draft.colors} onChange={(e) => set("colors", e.target.value)} />
-        </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="specs">Specifications (one per line, e.g. Engine: 110 cc)</Label>
-          <Textarea id="specs" rows={5} value={draft.specs} onChange={(e) => set("specs", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="sort">Display order</Label>
@@ -398,6 +388,260 @@ function VehicleForm({
           Cancel
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Variants, variant prices, specifications and colour galleries are managed with the “Variants”
+        button on the model below.
+      </p>
     </form>
+  );
+}
+
+/* ------------------------------- Variants ------------------------------- */
+
+function VariantsPanel({ vehicle }: { vehicle: Vehicle }) {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery(variantsQuery(vehicle.id));
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["variants", vehicle.id] });
+    void queryClient.invalidateQueries({ queryKey: ["vehicle"] });
+  };
+
+  const addVariant = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("vehicle_variants").insert({
+        vehicle_id: vehicle.id,
+        name: "New variant",
+        price: vehicle.price_from,
+        specs: {},
+        is_available: true,
+        sort_order: data?.length ?? 0,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: invalidate,
+  });
+
+  return (
+    <div className="mt-4 space-y-4 rounded-lg border border-border bg-secondary/40 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          Variants of {vehicle.name}
+        </p>
+        <Button size="sm" onClick={() => addVariant.mutate()} disabled={addVariant.isPending}>
+          <Plus /> Add variant
+        </Button>
+      </div>
+
+      {isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
+
+      {(data ?? []).map((variant) => (
+        <VariantCard key={variant.id} variant={variant} onChanged={invalidate} />
+      ))}
+
+      {!isLoading && (data ?? []).length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No variants yet. Add one to set variant prices, specifications and colours.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function VariantCard({
+  variant,
+  onChanged,
+}: {
+  variant: VehicleVariant;
+  onChanged: () => void;
+}) {
+  const [name, setName] = useState(variant.name);
+  const [price, setPrice] = useState(variant.price == null ? "" : String(variant.price));
+  const [specs, setSpecs] = useState(specsToText(variant.specs));
+  const [available, setAvailable] = useState(variant.is_available);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const { error: e } = await supabase
+        .from("vehicle_variants")
+        .update({
+          name,
+          price: price ? Number(price) : null,
+          specs: parseSpecs(specs),
+          is_available: available,
+        })
+        .eq("id", variant.id);
+      if (e) throw new Error(e.message);
+    },
+    onSuccess: () => {
+      setError(null);
+      onChanged();
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      const { error: e } = await supabase.from("vehicle_variants").delete().eq("id", variant.id);
+      if (e) throw new Error(e.message);
+    },
+    onSuccess: onChanged,
+  });
+
+  const addColour = useMutation({
+    mutationFn: async () => {
+      const { error: e } = await supabase.from("variant_colours").insert({
+        variant_id: variant.id,
+        name: "New colour",
+        images: [],
+        sort_order: variant.colours.length,
+      });
+      if (e) throw new Error(e.message);
+    },
+    onSuccess: onChanged,
+  });
+
+  return (
+    <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor={`vname-${variant.id}`}>Variant name</Label>
+          <Input
+            id={`vname-${variant.id}`}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Standard, Deluxe, DLX…"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`vprice-${variant.id}`}>Variant price (₹)</Label>
+          <Input
+            id={`vprice-${variant.id}`}
+            inputMode="numeric"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={`vspecs-${variant.id}`}>
+            Specifications (one per line, e.g. Engine: 110 cc)
+          </Label>
+          <Textarea
+            id={`vspecs-${variant.id}`}
+            rows={5}
+            value={specs}
+            onChange={(e) => setSpecs(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`vavail-${variant.id}`}
+            checked={available}
+            onCheckedChange={setAvailable}
+          />
+          <Label htmlFor={`vavail-${variant.id}`}>Available at showroom</Label>
+        </div>
+      </div>
+
+      {error && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+          {save.isPending ? "Saving…" : "Save variant"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => addColour.mutate()}>
+          <Plus /> Add colour
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            if (window.confirm(`Delete variant “${variant.name}” and its colours?`)) {
+              remove.mutate();
+            }
+          }}
+        >
+          <Trash2 /> Delete variant
+        </Button>
+      </div>
+
+      <div className="space-y-3 border-t border-border pt-4">
+        <p className="font-display text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          Colours
+        </p>
+        {variant.colours.map((colour) => (
+          <ColourCard key={colour.id} colour={colour} onChanged={onChanged} />
+        ))}
+        {variant.colours.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No colours yet for this variant. Use “Add colour”.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ColourCard({ colour, onChanged }: { colour: VariantColour; onChanged: () => void }) {
+  const [name, setName] = useState(colour.name);
+  const [images, setImages] = useState<string[]>(colour.images);
+
+  const save = useMutation({
+    mutationFn: async (next?: string[]) => {
+      const { error: e } = await supabase
+        .from("variant_colours")
+        .update({ name, images: next ?? images })
+        .eq("id", colour.id);
+      if (e) throw new Error(e.message);
+    },
+    onSuccess: onChanged,
+  });
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      const { error: e } = await supabase.from("variant_colours").delete().eq("id", colour.id);
+      if (e) throw new Error(e.message);
+    },
+    onSuccess: onChanged,
+  });
+
+  return (
+    <div className="space-y-3 rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-48 flex-1 space-y-1.5">
+          <Label htmlFor={`cname-${colour.id}`}>Colour name</Label>
+          <Input
+            id={`cname-${colour.id}`}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Pearl White"
+          />
+        </div>
+        <Button size="sm" onClick={() => save.mutate(undefined)} disabled={save.isPending}>
+          {save.isPending ? "Saving…" : "Save colour"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            if (window.confirm(`Delete colour “${colour.name}”?`)) remove.mutate();
+          }}
+        >
+          <Trash2 /> Delete
+        </Button>
+      </div>
+
+      <ImageManager
+        label="Gallery images for this colour"
+        hint="Shown when a visitor selects this variant and colour."
+        images={images}
+        folder="variants"
+        onChange={(next) => {
+          setImages(next);
+          save.mutate(next);
+        }}
+      />
+    </div>
   );
 }
