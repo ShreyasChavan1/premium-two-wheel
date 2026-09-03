@@ -37,10 +37,27 @@ export const Route = createFileRoute("/vehicles/$slug")({
 function VehicleDetailPage() {
   const { slug } = Route.useParams();
   const { data: vehicle, isLoading, isError } = useQuery(vehicleQuery(slug));
+  const { data: variants } = useQuery(variantsQuery(vehicle?.id));
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [variantId, setVariantId] = useState<string | null>(null);
+  const [colourId, setColourId] = useState<string | null>(null);
 
-  const images = vehicle ? [vehicle.image_url, ...vehicle.gallery].filter(Boolean) : [];
-  const shown = activeImage ?? images[0];
+  const variantList = variants ?? [];
+  const variant = variantList.find((item) => item.id === variantId) ?? variantList[0] ?? null;
+  const colours = variant?.colours ?? [];
+  const colour = colours.find((item) => item.id === colourId) ?? colours[0] ?? null;
+
+  const generalImages = vehicle ? [vehicle.image_url, ...vehicle.gallery].filter(Boolean) : [];
+  const images =
+    colour && colour.images.length > 0 ? colour.images.filter(Boolean) : generalImages;
+  const shown = (activeImage && images.includes(activeImage) ? activeImage : images[0]) as
+    | string
+    | undefined;
+
+  const price = variant ? variant.price : vehicle?.price_from ?? null;
+  const specs = variant && Object.keys(variant.specs).length > 0 ? variant.specs : vehicle?.specs ?? {};
+  const available = variant ? variant.is_available : Boolean(vehicle?.is_available);
+
 
   return (
     <div className="min-h-screen pb-14 md:pb-0">
