@@ -9,7 +9,7 @@ import { AvailabilityBadge } from "@/components/availability-badge";
 import { EnquiryForm } from "@/components/enquiry-form";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { vehicleQuery } from "@/lib/catalogue";
+import { vehicleQuery, variantsQuery } from "@/lib/catalogue";
 import { SHOWROOM, categoryLabel, formatPrice, waLink } from "@/lib/showroom";
 
 export const Route = createFileRoute("/vehicles/$slug")({
@@ -37,10 +37,27 @@ export const Route = createFileRoute("/vehicles/$slug")({
 function VehicleDetailPage() {
   const { slug } = Route.useParams();
   const { data: vehicle, isLoading, isError } = useQuery(vehicleQuery(slug));
+  const { data: variants } = useQuery(variantsQuery(vehicle?.id));
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [variantId, setVariantId] = useState<string | null>(null);
+  const [colourId, setColourId] = useState<string | null>(null);
 
-  const images = vehicle ? [vehicle.image_url, ...vehicle.gallery].filter(Boolean) : [];
-  const shown = activeImage ?? images[0];
+  const variantList = variants ?? [];
+  const variant = variantList.find((item) => item.id === variantId) ?? variantList[0] ?? null;
+  const colours = variant?.colours ?? [];
+  const colour = colours.find((item) => item.id === colourId) ?? colours[0] ?? null;
+
+  const generalImages = vehicle ? [vehicle.image_url, ...vehicle.gallery].filter(Boolean) : [];
+  const images =
+    colour && colour.images.length > 0 ? colour.images.filter(Boolean) : generalImages;
+  const shown = (activeImage && images.includes(activeImage) ? activeImage : images[0]) as
+    | string
+    | undefined;
+
+  const price = variant ? variant.price : vehicle?.price_from ?? null;
+  const specs = variant && Object.keys(variant.specs).length > 0 ? variant.specs : vehicle?.specs ?? {};
+  const available = variant ? variant.is_available : Boolean(vehicle?.is_available);
+
 
   return (
     <div className="min-h-screen pb-14 md:pb-0">
@@ -126,17 +143,72 @@ function VehicleDetailPage() {
                   Honda {vehicle.name}
                 </h1>
                 <div className="mt-4">
-                  <AvailabilityBadge available={vehicle.is_available} size="lg" />
+                  <AvailabilityBadge available={available} size="lg" />
                 </div>
                 <p className="mt-5 text-muted-foreground">{vehicle.short_description}</p>
 
+                {variantList.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Variants
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {variantList.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setVariantId(item.id);
+                            setColourId(null);
+                            setActiveImage(null);
+                          }}
+                          className={
+                            "rounded-full border px-4 py-2 text-sm font-semibold transition-colors " +
+                            (variant?.id === item.id
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-card hover:border-primary")
+                          }
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {colours.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Available colours
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {colours.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setColourId(item.id);
+                            setActiveImage(null);
+                          }}
+                          className={
+                            "rounded-full border px-4 py-2 text-sm font-medium transition-colors " +
+                            (colour?.id === item.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-card hover:border-primary")
+                          }
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 rounded-xl border border-border bg-card p-5">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                    Starting price (ex-showroom, demo)
+                    {variant ? `${variant.name} price (ex-showroom, demo)` : "Starting price (ex-showroom, demo)"}
                   </p>
-                  <p className="font-display text-4xl font-bold">
-                    {formatPrice(vehicle.price_from)}
-                  </p>
+                  <p className="font-display text-4xl font-bold">{formatPrice(price)}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     On-road price varies by variant, colour and registration. Contact us for an exact
                     quote.
@@ -152,7 +224,9 @@ function VehicleDetailPage() {
                   <Button asChild size="lg" variant="secondary">
                     <a
                       href={waLink(
-                        `Hello ${SHOWROOM.name}, I am interested in the Honda ${vehicle.name}. Is it available?`,
+                        `Hello ${SHOWROOM.name}, I am interested in the Honda ${vehicle.name}${
+                          variant ? ` ${variant.name}` : ""
+                        }${colour ? ` in ${colour.name}` : ""}. Is it available?`,
                       )}
                       target="_blank"
                       rel="noreferrer"
@@ -164,14 +238,8 @@ function VehicleDetailPage() {
                     <a href="#enquire">Enquire</a>
                   </Button>
                 </div>
-
-                {vehicle.variants.length > 0 && (
-                  <ChipList title="Variants" items={[...vehicle.variants]} />
-                )}
-                {vehicle.colors.length > 0 && (
-                  <ChipList title="Available colours" items={[...vehicle.colors]} />
-                )}
               </div>
+
             </div>
 
             <section className="mt-14 grid gap-10 lg:grid-cols-2">
@@ -186,13 +254,13 @@ function VehicleDetailPage() {
                   Key specifications
                 </h2>
                 <dl className="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
-                  {Object.entries(vehicle.specs).map(([key, value]) => (
+                  {Object.entries(specs).map(([key, value]) => (
                     <div key={key} className="flex justify-between gap-6 px-5 py-3 text-sm">
                       <dt className="text-muted-foreground">{key}</dt>
                       <dd className="text-right font-semibold">{String(value)}</dd>
                     </div>
                   ))}
-                  {Object.keys(vehicle.specs).length === 0 && (
+                  {Object.keys(specs).length === 0 && (
                     <p className="px-5 py-4 text-sm text-muted-foreground">
                       Specifications will be updated shortly.
                     </p>
@@ -211,7 +279,7 @@ function VehicleDetailPage() {
                 ride options.
               </p>
               <div className="mt-8 max-w-3xl">
-                <EnquiryForm defaultVehicle={vehicle.name} />
+                <EnquiryForm defaultVehicle={variant ? `${vehicle.name} ${variant.name}` : vehicle.name} />
               </div>
             </section>
           </>
@@ -220,26 +288,6 @@ function VehicleDetailPage() {
 
       <SiteFooter />
       <MobileContactBar />
-    </div>
-  );
-}
-
-function ChipList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="mt-6">
-      <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        {title}
-      </h2>
-      <ul className="mt-3 flex flex-wrap gap-2">
-        {items.map((item) => (
-          <li
-            key={item}
-            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium"
-          >
-            {item}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
