@@ -9,7 +9,7 @@ import { AvailabilityBadge } from "@/components/availability-badge";
 import { EnquiryForm } from "@/components/enquiry-form";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { vehicleQuery } from "@/lib/catalogue";
+import { vehicleQuery, variantsQuery } from "@/lib/catalogue";
 import { SHOWROOM, categoryLabel, formatPrice, waLink } from "@/lib/showroom";
 
 export const Route = createFileRoute("/vehicles/$slug")({
