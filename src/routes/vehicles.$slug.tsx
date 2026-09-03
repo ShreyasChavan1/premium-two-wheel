@@ -143,17 +143,72 @@ function VehicleDetailPage() {
                   Honda {vehicle.name}
                 </h1>
                 <div className="mt-4">
-                  <AvailabilityBadge available={vehicle.is_available} size="lg" />
+                  <AvailabilityBadge available={available} size="lg" />
                 </div>
                 <p className="mt-5 text-muted-foreground">{vehicle.short_description}</p>
 
+                {variantList.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Variants
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {variantList.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setVariantId(item.id);
+                            setColourId(null);
+                            setActiveImage(null);
+                          }}
+                          className={
+                            "rounded-full border px-4 py-2 text-sm font-semibold transition-colors " +
+                            (variant?.id === item.id
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-card hover:border-primary")
+                          }
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {colours.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Available colours
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {colours.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setColourId(item.id);
+                            setActiveImage(null);
+                          }}
+                          className={
+                            "rounded-full border px-4 py-2 text-sm font-medium transition-colors " +
+                            (colour?.id === item.id
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-card hover:border-primary")
+                          }
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 rounded-xl border border-border bg-card p-5">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                    Starting price (ex-showroom, demo)
+                    {variant ? `${variant.name} price (ex-showroom, demo)` : "Starting price (ex-showroom, demo)"}
                   </p>
-                  <p className="font-display text-4xl font-bold">
-                    {formatPrice(vehicle.price_from)}
-                  </p>
+                  <p className="font-display text-4xl font-bold">{formatPrice(price)}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     On-road price varies by variant, colour and registration. Contact us for an exact
                     quote.
@@ -169,7 +224,9 @@ function VehicleDetailPage() {
                   <Button asChild size="lg" variant="secondary">
                     <a
                       href={waLink(
-                        `Hello ${SHOWROOM.name}, I am interested in the Honda ${vehicle.name}. Is it available?`,
+                        `Hello ${SHOWROOM.name}, I am interested in the Honda ${vehicle.name}${
+                          variant ? ` ${variant.name}` : ""
+                        }${colour ? ` in ${colour.name}` : ""}. Is it available?`,
                       )}
                       target="_blank"
                       rel="noreferrer"
@@ -181,14 +238,8 @@ function VehicleDetailPage() {
                     <a href="#enquire">Enquire</a>
                   </Button>
                 </div>
-
-                {vehicle.variants.length > 0 && (
-                  <ChipList title="Variants" items={[...vehicle.variants]} />
-                )}
-                {vehicle.colors.length > 0 && (
-                  <ChipList title="Available colours" items={[...vehicle.colors]} />
-                )}
               </div>
+
             </div>
 
             <section className="mt-14 grid gap-10 lg:grid-cols-2">
