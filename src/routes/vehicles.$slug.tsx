@@ -254,13 +254,13 @@ function VehicleDetailPage() {
                   Key specifications
                 </h2>
                 <dl className="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
-                  {Object.entries(vehicle.specs).map(([key, value]) => (
+                  {Object.entries(specs).map(([key, value]) => (
                     <div key={key} className="flex justify-between gap-6 px-5 py-3 text-sm">
                       <dt className="text-muted-foreground">{key}</dt>
                       <dd className="text-right font-semibold">{String(value)}</dd>
                     </div>
                   ))}
-                  {Object.keys(vehicle.specs).length === 0 && (
+                  {Object.keys(specs).length === 0 && (
                     <p className="px-5 py-4 text-sm text-muted-foreground">
                       Specifications will be updated shortly.
                     </p>
@@ -279,7 +279,7 @@ function VehicleDetailPage() {
                 ride options.
               </p>
               <div className="mt-8 max-w-3xl">
-                <EnquiryForm defaultVehicle={vehicle.name} />
+                <EnquiryForm defaultVehicle={variant ? `${vehicle.name} ${variant.name}` : vehicle.name} />
               </div>
             </section>
           </>
@@ -288,26 +288,6 @@ function VehicleDetailPage() {
 
       <SiteFooter />
       <MobileContactBar />
-    </div>
-  );
-}
-
-function ChipList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="mt-6">
-      <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        {title}
-      </h2>
-      <ul className="mt-3 flex flex-wrap gap-2">
-        {items.map((item) => (
-          <li
-            key={item}
-            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium"
-          >
-            {item}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
