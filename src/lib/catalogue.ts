@@ -97,6 +97,14 @@ const asVehicle = (row: Record<string, unknown>): Vehicle => ({
 const asVariant = (row: Record<string, unknown>): VehicleVariant => ({
   ...(row as unknown as VehicleVariant),
   price: row["price"] == null ? null : Number(row["price"]),
+  ex_showroom_price:
+    row["ex_showroom_price"] == null
+      ? row["price"] == null
+        ? null
+        : Number(row["price"])
+      : Number(row["ex_showroom_price"]),
+  on_road_price: row["on_road_price"] == null ? null : Number(row["on_road_price"]),
+  emi_options: normaliseEmiOptions(row["emi_options"]),
   specs: (row["specs"] ?? {}) as Record<string, string>,
   colours: ((row["variant_colours"] ?? []) as Record<string, unknown>[])
     .map((colour) => colour as unknown as VariantColour)
