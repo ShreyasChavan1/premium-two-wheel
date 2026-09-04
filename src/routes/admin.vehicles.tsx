@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Layers, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Pencil, Plus, Trash2 } from "lucide-react";
 import { AvailabilityBadge } from "@/components/availability-badge";
 import { ImageManager } from "@/components/image-manager";
 import { Button } from "@/components/ui/button";
