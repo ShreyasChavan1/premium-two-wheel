@@ -8,8 +8,16 @@ import { MobileContactBar } from "@/components/mobile-contact-bar";
 import { AvailabilityBadge } from "@/components/availability-badge";
 import { EnquiryForm } from "@/components/enquiry-form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { vehicleQuery, variantsQuery } from "@/lib/catalogue";
+import {
+  vehicleQuery,
+  variantsQuery,
+  calculateEmi,
+  EMI_DISCLAIMER,
+  type EmiOption,
+} from "@/lib/catalogue";
 import { SHOWROOM, categoryLabel, formatPrice, waLink } from "@/lib/showroom";
 
 export const Route = createFileRoute("/vehicles/$slug")({
@@ -54,7 +62,10 @@ function VehicleDetailPage() {
     | string
     | undefined;
 
-  const price = variant ? variant.price : vehicle?.price_from ?? null;
+  const exShowroom = variant
+    ? variant.ex_showroom_price ?? variant.price
+    : vehicle?.price_from ?? null;
+  const onRoad = variant?.on_road_price ?? null;
   const specs = variant && Object.keys(variant.specs).length > 0 ? variant.specs : vehicle?.specs ?? {};
   const available = variant ? variant.is_available : Boolean(vehicle?.is_available);
 
@@ -205,15 +216,30 @@ function VehicleDetailPage() {
                 )}
 
                 <div className="mt-6 rounded-xl border border-border bg-card p-5">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {variant ? `${variant.name} price (ex-showroom, demo)` : "Starting price (ex-showroom, demo)"}
-                  </p>
-                  <p className="font-display text-4xl font-bold">{formatPrice(price)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    On-road price varies by variant, colour and registration. Contact us for an exact
-                    quote.
-                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        Ex-showroom price
+                      </p>
+                      <p className="font-display text-4xl font-bold">{formatPrice(exShowroom)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        On-road price
+                      </p>
+                      <p className="font-display text-4xl font-bold">{formatPrice(onRoad)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">{EMI_DISCLAIMER}</p>
                 </div>
+
+                {variant && (
+                  <EmiCalculator
+                    key={variant.id}
+                    onRoadPrice={onRoad}
+                    options={variant.emi_options}
+                  />
+                )}
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
                   <Button asChild size="lg">
@@ -288,6 +314,95 @@ function VehicleDetailPage() {
 
       <SiteFooter />
       <MobileContactBar />
+    </div>
+  );
+}
+
+function EmiCalculator({
+  onRoadPrice,
+  options,
+}: {
+  onRoadPrice: number | null;
+  options: EmiOption[];
+}) {
+  const [downPayment, setDownPayment] = useState("");
+  const [months, setMonths] = useState<number | null>(options[0]?.months ?? null);
+
+  if (!onRoadPrice || options.length === 0) return null;
+
+  const selected = options.find((option) => option.months === months) ?? options[0]!;
+  const down = Number(downPayment) || 0;
+  const tooHigh = down > onRoadPrice;
+  const loanAmount = Math.max(onRoadPrice - down, 0);
+  const emi = tooHigh ? 0 : calculateEmi(loanAmount, selected.rate, selected.months);
+
+  return (
+    <div className="mt-6 rounded-xl border border-border bg-card p-5">
+      <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        EMI calculator
+      </h2>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="emi-down">Down payment (₹)</Label>
+          <Input
+            id="emi-down"
+            inputMode="numeric"
+            value={downPayment}
+            placeholder="0"
+            onChange={(event) => setDownPayment(event.target.value.replace(/[^0-9]/g, ""))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="emi-tenure">Loan tenure</Label>
+          <select
+            id="emi-tenure"
+            value={selected.months}
+            onChange={(event) => setMonths(Number(event.target.value))}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {options.map((option) => (
+              <option key={option.months} value={option.months}>
+                {option.months} months
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {tooHigh && (
+        <p className="mt-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          Down payment cannot be more than the on-road price of {formatPrice(onRoadPrice)}.
+        </p>
+      )}
+
+      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-secondary px-4 py-3">
+          <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Loan amount
+          </dt>
+          <dd className="font-display text-xl font-bold">
+            {tooHigh ? "—" : formatPrice(loanAmount)}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-border bg-secondary px-4 py-3">
+          <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Interest rate
+          </dt>
+          <dd className="font-display text-xl font-bold">{selected.rate}% p.a.</dd>
+          <p className="text-[11px] text-muted-foreground">Fixed for {selected.months} months</p>
+        </div>
+        <div className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3">
+          <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Estimated EMI
+          </dt>
+          <dd className="font-display text-xl font-bold text-primary">
+            {tooHigh ? "—" : `${formatPrice(Math.round(emi))}/mo`}
+          </dd>
+        </div>
+      </dl>
+
+      <p className="mt-4 text-xs text-muted-foreground">{EMI_DISCLAIMER}</p>
     </div>
   );
 }

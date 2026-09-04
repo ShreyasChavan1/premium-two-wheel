@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Layers, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, Pencil, Plus, Trash2 } from "lucide-react";
 import { AvailabilityBadge } from "@/components/availability-badge";
 import { ImageManager } from "@/components/image-manager";
 import { Button } from "@/components/ui/button";
@@ -448,6 +448,8 @@ function VariantsPanel({ vehicle }: { vehicle: Vehicle }) {
   );
 }
 
+type EmiDraft = { months: string; rate: string };
+
 function VariantCard({
   variant,
   onChanged,
@@ -456,18 +458,48 @@ function VariantCard({
   onChanged: () => void;
 }) {
   const [name, setName] = useState(variant.name);
-  const [price, setPrice] = useState(variant.price == null ? "" : String(variant.price));
+  const [price, setPrice] = useState(
+    variant.ex_showroom_price == null ? "" : String(variant.ex_showroom_price),
+  );
+  const [onRoad, setOnRoad] = useState(
+    variant.on_road_price == null ? "" : String(variant.on_road_price),
+  );
+  const [emi, setEmi] = useState<EmiDraft[]>(
+    variant.emi_options.map((option) => ({
+      months: String(option.months),
+      rate: String(option.rate),
+    })),
+  );
   const [specs, setSpecs] = useState(specsToText(variant.specs));
   const [available, setAvailable] = useState(variant.is_available);
   const [error, setError] = useState<string | null>(null);
 
+  const setEmiField = (index: number, key: keyof EmiDraft, value: string) =>
+    setEmi(emi.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
+
+  const moveEmi = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= emi.length) return;
+    const next = [...emi];
+    const [row] = next.splice(index, 1);
+    next.splice(target, 0, row!);
+    setEmi(next);
+  };
+
   const save = useMutation({
     mutationFn: async () => {
+      const emiOptions = emi
+        .map((row) => ({ months: Number(row.months) || 0, rate: Number(row.rate) || 0 }))
+        .filter((row) => row.months > 0);
+      const exShowroom = price ? Number(price) : null;
       const { error: e } = await supabase
         .from("vehicle_variants")
         .update({
           name,
-          price: price ? Number(price) : null,
+          price: exShowroom,
+          ex_showroom_price: exShowroom,
+          on_road_price: onRoad ? Number(onRoad) : null,
+          emi_options: emiOptions,
           specs: parseSpecs(specs),
           is_available: available,
         })
@@ -515,13 +547,91 @@ function VariantCard({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`vprice-${variant.id}`}>Variant price (₹)</Label>
+          <Label htmlFor={`vprice-${variant.id}`}>Ex-showroom price (₹)</Label>
           <Input
             id={`vprice-${variant.id}`}
             inputMode="numeric"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`vonroad-${variant.id}`}>On-road price (₹)</Label>
+          <Input
+            id={`vonroad-${variant.id}`}
+            inputMode="numeric"
+            value={onRoad}
+            onChange={(e) => setOnRoad(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>EMI settings — loan tenures and interest rates</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setEmi([...emi, { months: "12", rate: "9.5" }])}
+            >
+              <Plus /> Add tenure
+            </Button>
+          </div>
+          {emi.map((row, index) => (
+            <div key={index} className="flex flex-wrap items-end gap-2">
+              <div className="w-28 space-y-1">
+                <span className="text-xs text-muted-foreground">Months</span>
+                <Input
+                  inputMode="numeric"
+                  value={row.months}
+                  onChange={(e) => setEmiField(index, "months", e.target.value)}
+                />
+              </div>
+              <div className="w-28 space-y-1">
+                <span className="text-xs text-muted-foreground">Interest %</span>
+                <Input
+                  inputMode="decimal"
+                  value={row.rate}
+                  onChange={(e) => setEmiField(index, "rate", e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label="Move up"
+                onClick={() => moveEmi(index, -1)}
+              >
+                <ArrowUp />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label="Move down"
+                onClick={() => moveEmi(index, 1)}
+              >
+                <ArrowDown />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label="Remove tenure"
+                onClick={() => setEmi(emi.filter((_, i) => i !== index))}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
+          {emi.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No tenure options yet. Add one, e.g. 12 months at 9.5%.
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Visitors pick a tenure on the model page; the interest rate you set here is applied
+            automatically and cannot be changed by them.
+          </p>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor={`vspecs-${variant.id}`}>

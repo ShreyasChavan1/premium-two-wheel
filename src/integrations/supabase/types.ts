@@ -148,9 +148,12 @@ export type Database = {
       vehicle_variants: {
         Row: {
           created_at: string
+          emi_options: Json
+          ex_showroom_price: number | null
           id: string
           is_available: boolean
           name: string
+          on_road_price: number | null
           price: number | null
           sort_order: number
           specs: Json
@@ -159,9 +162,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          emi_options?: Json
+          ex_showroom_price?: number | null
           id?: string
           is_available?: boolean
           name: string
+          on_road_price?: number | null
           price?: number | null
           sort_order?: number
           specs?: Json
@@ -170,9 +176,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          emi_options?: Json
+          ex_showroom_price?: number | null
           id?: string
           is_available?: boolean
           name?: string
+          on_road_price?: number | null
           price?: number | null
           sort_order?: number
           specs?: Json
