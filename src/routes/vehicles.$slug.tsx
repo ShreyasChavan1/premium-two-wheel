@@ -317,3 +317,92 @@ function VehicleDetailPage() {
     </div>
   );
 }
+
+function EmiCalculator({
+  onRoadPrice,
+  options,
+}: {
+  onRoadPrice: number | null;
+  options: EmiOption[];
+}) {
+  const [downPayment, setDownPayment] = useState("");
+  const [months, setMonths] = useState<number | null>(options[0]?.months ?? null);
+
+  if (!onRoadPrice || options.length === 0) return null;
+
+  const selected = options.find((option) => option.months === months) ?? options[0]!;
+  const down = Number(downPayment) || 0;
+  const tooHigh = down > onRoadPrice;
+  const loanAmount = Math.max(onRoadPrice - down, 0);
+  const emi = tooHigh ? 0 : calculateEmi(loanAmount, selected.rate, selected.months);
+
+  return (
+    <div className="mt-6 rounded-xl border border-border bg-card p-5">
+      <h2 className="font-display text-sm font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        EMI calculator
+      </h2>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="emi-down">Down payment (₹)</Label>
+          <Input
+            id="emi-down"
+            inputMode="numeric"
+            value={downPayment}
+            placeholder="0"
+            onChange={(event) => setDownPayment(event.target.value.replace(/[^0-9]/g, ""))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="emi-tenure">Loan tenure</Label>
+          <select
+            id="emi-tenure"
+            value={selected.months}
+            onChange={(event) => setMonths(Number(event.target.value))}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {options.map((option) => (
+              <option key={option.months} value={option.months}>
+                {option.months} months
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {tooHigh && (
+        <p className="mt-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          Down payment cannot be more than the on-road price of {formatPrice(onRoadPrice)}.
+        </p>
+      )}
+
+      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-border bg-secondary px-4 py-3">
+          <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Loan amount
+          </dt>
+          <dd className="font-display text-xl font-bold">
+            {tooHigh ? "—" : formatPrice(loanAmount)}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-border bg-secondary px-4 py-3">
+          <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Interest rate
+          </dt>
+          <dd className="font-display text-xl font-bold">{selected.rate}% p.a.</dd>
+          <p className="text-[11px] text-muted-foreground">Fixed for {selected.months} months</p>
+        </div>
+        <div className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3">
+          <dt className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Estimated EMI
+          </dt>
+          <dd className="font-display text-xl font-bold text-primary">
+            {tooHigh ? "—" : `${formatPrice(Math.round(emi))}/mo`}
+          </dd>
+        </div>
+      </dl>
+
+      <p className="mt-4 text-xs text-muted-foreground">{EMI_DISCLAIMER}</p>
+    </div>
+  );
+}
