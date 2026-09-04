@@ -8,8 +8,16 @@ import { MobileContactBar } from "@/components/mobile-contact-bar";
 import { AvailabilityBadge } from "@/components/availability-badge";
 import { EnquiryForm } from "@/components/enquiry-form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { vehicleQuery, variantsQuery } from "@/lib/catalogue";
+import {
+  vehicleQuery,
+  variantsQuery,
+  calculateEmi,
+  EMI_DISCLAIMER,
+  type EmiOption,
+} from "@/lib/catalogue";
 import { SHOWROOM, categoryLabel, formatPrice, waLink } from "@/lib/showroom";
 
 export const Route = createFileRoute("/vehicles/$slug")({
