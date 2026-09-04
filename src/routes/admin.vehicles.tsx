@@ -547,13 +547,91 @@ function VariantCard({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`vprice-${variant.id}`}>Variant price (₹)</Label>
+          <Label htmlFor={`vprice-${variant.id}`}>Ex-showroom price (₹)</Label>
           <Input
             id={`vprice-${variant.id}`}
             inputMode="numeric"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`vonroad-${variant.id}`}>On-road price (₹)</Label>
+          <Input
+            id={`vonroad-${variant.id}`}
+            inputMode="numeric"
+            value={onRoad}
+            onChange={(e) => setOnRoad(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>EMI settings — loan tenures and interest rates</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setEmi([...emi, { months: "12", rate: "9.5" }])}
+            >
+              <Plus /> Add tenure
+            </Button>
+          </div>
+          {emi.map((row, index) => (
+            <div key={index} className="flex flex-wrap items-end gap-2">
+              <div className="w-28 space-y-1">
+                <span className="text-xs text-muted-foreground">Months</span>
+                <Input
+                  inputMode="numeric"
+                  value={row.months}
+                  onChange={(e) => setEmiField(index, "months", e.target.value)}
+                />
+              </div>
+              <div className="w-28 space-y-1">
+                <span className="text-xs text-muted-foreground">Interest %</span>
+                <Input
+                  inputMode="decimal"
+                  value={row.rate}
+                  onChange={(e) => setEmiField(index, "rate", e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label="Move up"
+                onClick={() => moveEmi(index, -1)}
+              >
+                <ArrowUp />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label="Move down"
+                onClick={() => moveEmi(index, 1)}
+              >
+                <ArrowDown />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label="Remove tenure"
+                onClick={() => setEmi(emi.filter((_, i) => i !== index))}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
+          {emi.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No tenure options yet. Add one, e.g. 12 months at 9.5%.
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Visitors pick a tenure on the model page; the interest rate you set here is applied
+            automatically and cannot be changed by them.
+          </p>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor={`vspecs-${variant.id}`}>
