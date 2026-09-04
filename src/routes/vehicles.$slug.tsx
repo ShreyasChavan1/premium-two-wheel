@@ -205,15 +205,30 @@ function VehicleDetailPage() {
                 )}
 
                 <div className="mt-6 rounded-xl border border-border bg-card p-5">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {variant ? `${variant.name} price (ex-showroom, demo)` : "Starting price (ex-showroom, demo)"}
-                  </p>
-                  <p className="font-display text-4xl font-bold">{formatPrice(price)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    On-road price varies by variant, colour and registration. Contact us for an exact
-                    quote.
-                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        Ex-showroom price
+                      </p>
+                      <p className="font-display text-4xl font-bold">{formatPrice(exShowroom)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        On-road price
+                      </p>
+                      <p className="font-display text-4xl font-bold">{formatPrice(onRoad)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">{EMI_DISCLAIMER}</p>
                 </div>
+
+                {variant && (
+                  <EmiCalculator
+                    key={variant.id}
+                    onRoadPrice={onRoad}
+                    options={variant.emi_options}
+                  />
+                )}
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
                   <Button asChild size="lg">
