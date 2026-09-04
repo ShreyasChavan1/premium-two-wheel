@@ -448,6 +448,8 @@ function VariantsPanel({ vehicle }: { vehicle: Vehicle }) {
   );
 }
 
+type EmiDraft = { months: string; rate: string };
+
 function VariantCard({
   variant,
   onChanged,
@@ -456,18 +458,48 @@ function VariantCard({
   onChanged: () => void;
 }) {
   const [name, setName] = useState(variant.name);
-  const [price, setPrice] = useState(variant.price == null ? "" : String(variant.price));
+  const [price, setPrice] = useState(
+    variant.ex_showroom_price == null ? "" : String(variant.ex_showroom_price),
+  );
+  const [onRoad, setOnRoad] = useState(
+    variant.on_road_price == null ? "" : String(variant.on_road_price),
+  );
+  const [emi, setEmi] = useState<EmiDraft[]>(
+    variant.emi_options.map((option) => ({
+      months: String(option.months),
+      rate: String(option.rate),
+    })),
+  );
   const [specs, setSpecs] = useState(specsToText(variant.specs));
   const [available, setAvailable] = useState(variant.is_available);
   const [error, setError] = useState<string | null>(null);
 
+  const setEmiField = (index: number, key: keyof EmiDraft, value: string) =>
+    setEmi(emi.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
+
+  const moveEmi = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= emi.length) return;
+    const next = [...emi];
+    const [row] = next.splice(index, 1);
+    next.splice(target, 0, row!);
+    setEmi(next);
+  };
+
   const save = useMutation({
     mutationFn: async () => {
+      const emiOptions = emi
+        .map((row) => ({ months: Number(row.months) || 0, rate: Number(row.rate) || 0 }))
+        .filter((row) => row.months > 0);
+      const exShowroom = price ? Number(price) : null;
       const { error: e } = await supabase
         .from("vehicle_variants")
         .update({
           name,
-          price: price ? Number(price) : null,
+          price: exShowroom,
+          ex_showroom_price: exShowroom,
+          on_road_price: onRoad ? Number(onRoad) : null,
+          emi_options: emiOptions,
           specs: parseSpecs(specs),
           is_available: available,
         })
