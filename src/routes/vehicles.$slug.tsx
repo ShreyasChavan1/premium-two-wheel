@@ -54,7 +54,10 @@ function VehicleDetailPage() {
     | string
     | undefined;
 
-  const price = variant ? variant.price : vehicle?.price_from ?? null;
+  const exShowroom = variant
+    ? variant.ex_showroom_price ?? variant.price
+    : vehicle?.price_from ?? null;
+  const onRoad = variant?.on_road_price ?? null;
   const specs = variant && Object.keys(variant.specs).length > 0 ? variant.specs : vehicle?.specs ?? {};
   const available = variant ? variant.is_available : Boolean(vehicle?.is_available);
 
