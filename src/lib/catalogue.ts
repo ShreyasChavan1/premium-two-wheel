@@ -49,16 +49,44 @@ export type VariantColour = {
   sort_order: number;
 };
 
+export type EmiOption = {
+  months: number;
+  rate: number;
+};
+
 export type VehicleVariant = {
   id: string;
   vehicle_id: string;
   name: string;
   price: number | null;
+  ex_showroom_price: number | null;
+  on_road_price: number | null;
+  emi_options: EmiOption[];
   specs: Record<string, string>;
   is_available: boolean;
   sort_order: number;
   colours: VariantColour[];
 };
+
+export const normaliseEmiOptions = (value: unknown): EmiOption[] =>
+  (Array.isArray(value) ? value : [])
+    .map((item) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      return { months: Number(row["months"]) || 0, rate: Number(row["rate"]) || 0 };
+    })
+    .filter((option) => option.months > 0);
+
+/** Standard reducing-balance EMI. */
+export const calculateEmi = (principal: number, annualRate: number, months: number) => {
+  if (principal <= 0 || months <= 0) return 0;
+  const monthly = annualRate / 12 / 100;
+  if (monthly === 0) return principal / months;
+  const factor = Math.pow(1 + monthly, months);
+  return (principal * monthly * factor) / (factor - 1);
+};
+
+export const EMI_DISCLAIMER =
+  "EMI and on-road price are indicative and may vary based on lender, insurance, RTO charges, offers and other applicable charges.";
 
 const asVehicle = (row: Record<string, unknown>): Vehicle => ({
   ...(row as unknown as Vehicle),
